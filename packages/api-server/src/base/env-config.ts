@@ -28,6 +28,7 @@ export const envConfig = {
   maxQueryRounds: getOptional("MAX_QUERY_ROUNDS"),
   maxQueryTimeInMilliseconds: getOptional("MAX_QUERY_TIME_MILSECS"),
   feeRate: getOptional("FEE_RATE"),
+  enableDebugRpc: getOptional("ENABLE_DEBUG_RPC"),
 };
 
 function getRequired(name: string): string {
