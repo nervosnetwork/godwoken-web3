@@ -6,3 +6,4 @@ crates/**/target
 target
 indexer-config.toml
 *.cpuprofile
+*.heapsnapshot
