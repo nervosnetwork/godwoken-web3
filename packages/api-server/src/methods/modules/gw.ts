@@ -28,10 +28,12 @@ import {
   isPolyjuiceTransactionArgs,
   parseSerializeEthAddrRegArgs,
   parseSerializeL2Transaction,
+  parseSerializeMetaContractArgs,
   parseSerializeSudtArgs,
 } from "../../parse-tx";
 import { InvalidParamsError } from "../error";
 import { gwConfig } from "../../base";
+import { META_CONTRACT_ID } from "../constant";
 
 export class Gw {
   private rpc: RPC;
@@ -507,9 +509,24 @@ export class Gw {
           const feeErr = verifyL2TxFee(fee, serializedL2Tx, 0);
           if (feeErr) {
             throw feeErr.padContext(
-              `gw_submit_l2transaction ethAddrReg SetMapping`
+              `gw_submit_l2transaction ethAddrReg ${regArgs.type}`
             );
           }
+        }
+      }
+
+      // 4. validate meta contract transaction fee
+      if (
+        toId === META_CONTRACT_ID &&
+        toScript.code_hash === gwConfig.backends.meta.validatorScriptTypeHash
+      ) {
+        const metaContractArgs = parseSerializeMetaContractArgs(l2Tx.raw.args);
+        const fee = metaContractArgs.value.fee.amount;
+        const feeErr = verifyL2TxFee(fee, serializedL2Tx, 0);
+        if (feeErr) {
+          throw feeErr.padContext(
+            `gw_submit_l2transaction metaContract ${metaContractArgs.type}`
+          );
         }
       }
 
