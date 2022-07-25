@@ -5,11 +5,24 @@ import { EventEmitter } from "events";
 import { toApiNewHead } from "./db/types";
 import cluster from "cluster";
 import * as Sentry from "@sentry/node";
+import { Store } from "./cache/store";
+import {
+  TIP_BLOCK_HASH_CACHE_KEY,
+  TIP_BLOCK_HASH_CACHE_EXPIRED_TIME_MS,
+} from "./cache/constant";
 
 let newrelic: any = undefined;
 if (envConfig.newRelicLicenseKey) {
   newrelic = require("newrelic");
 }
+
+// init cache
+const cacheStore: Store = new Store(
+  envConfig.redisUrl,
+  true,
+  TIP_BLOCK_HASH_CACHE_EXPIRED_TIME_MS
+);
+cacheStore.init();
 
 // Only start in main worker, and `startWorker` in workers to get emitter.
 export class BlockEmitter {
@@ -107,12 +120,19 @@ export class BlockEmitter {
       const newHeads = blocks.map((b) => toApiNewHead(b));
       this.notify("newHeads", newHeads);
 
+      // update tipBlockHash in cache
+      cacheStore.insert(
+        TIP_BLOCK_HASH_CACHE_KEY,
+        newHeads[newHeads.length - 1].hash
+      );
+
       const logs = await this.query.getLogsByFilter({
         fromBlock: min + BigInt(1),
         toBlock: max,
         addresses: [],
         topics: [],
       });
+
       const newLogs = logs.map((log) =>
         JSON.stringify(
           log,
